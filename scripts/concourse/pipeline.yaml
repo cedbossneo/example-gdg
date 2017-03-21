@@ -1,0 +1,90 @@
+resource_types:
+  - name: helm
+    type: docker-image
+    source:
+      repository: cedbossneo/concourse-helm
+
+resources:
+  - name: repository
+    type: git
+    source: &source
+      uri: git@github.com:cedbossneo/example-gdg.git
+      branch: master
+  - name: version
+    type: semver
+    source:
+      <<: *source
+      branch: version
+      file: version
+      private_key: {{deploy-key}}
+  - name: image
+    type: docker-image
+    source:
+      repository: eu.gcr.io/sandbox-wescale/example-gdg
+      username: _json_key
+      password: {{gcr-key}}
+  - name: helm
+    type: helm
+    source:
+      helm_repo: https://wescale-helm.storage.googleapis.com/
+      helm_package: example-gdg
+      helm_bucket: wescale-helm
+
+jobs:
+  - name: build
+    plan:
+      - get: version
+        params:
+          bump: minor
+      - get: repository
+        trigger: true
+      - task: build-project
+        config:
+          platform: linux
+
+          image_resource:
+            type: docker-image
+            source:
+              repository: golang
+
+          inputs:
+            - name: repository
+
+          outputs:
+            - name: built
+
+          run:
+            dir: repository
+            path: scripts/concourse/build.sh
+      - put: version
+        params:
+          bump: minor
+      - put: image
+        params:
+          build: built
+          tag: version/version
+      - put: helm
+        params:
+          version: version/version
+          dir: repository/scripts/helm/example
+
+  - name: production
+    plan:
+      - aggregate:
+        - get: repository
+          passed:
+            - build
+        - get: image
+          passed:
+            - build
+        - get: helm
+          passed:
+            - build
+      - put: helm
+        params:
+          kube_login: {{kube-prod-login}}
+          kube_password: {{kube-prod-pass}}
+          kube_url: {{kube-prod-url}}
+          namespace: demo
+          deploy: true
+          version: version/version

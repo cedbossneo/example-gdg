@@ -1,0 +1,12 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: example-gdg
+  annotations:
+    kubernetes.io/ingress.class: gce
+spec:
+  backend:
+    serviceName: example-gdg
+    servicePort: 80
+  rules:
+  - host: {{.Values.dns}}

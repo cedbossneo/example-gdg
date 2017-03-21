@@ -1,0 +1,38 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: example-gdg
+  name: example-gdg
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: example-gdg
+      namespace: demo
+    spec:
+      containers:
+      - image: {{.Values.image}}:{{ .Chart.Version }}
+        name: example-gdg
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+          limits:
+            cpu: 250m
+            memory: 200Mi
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+            scheme: HTTP
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+            scheme: HTTP
