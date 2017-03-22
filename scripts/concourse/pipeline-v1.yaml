@@ -1,0 +1,54 @@
+resources:
+  - name: repository
+    type: git
+    source: &source
+      uri: git@github.com:cedbossneo/example-gdg.git
+      branch: master
+      private_key: {{deploy-key}}
+  - name: version
+    type: semver
+    source:
+      <<: *source
+      driver: git
+      branch: version
+      file: version
+  - name: image
+    type: docker-image
+    source:
+      repository: eu.gcr.io/sandbox-wescale/example-gdg
+      username: _json_key
+      password: {{gcr-key}}
+
+jobs:
+  - name: build
+    plan:
+      - get: version
+        params:
+          bump: minor
+      - get: repository
+        trigger: true
+      - task: build-project
+        config:
+          platform: linux
+
+          image_resource:
+            type: docker-image
+            source:
+              repository: golang
+
+          inputs:
+            - name: repository
+
+          outputs:
+            - name: built
+
+          run:
+            dir: repository
+            path: scripts/concourse/build.sh
+      - put: version
+        params:
+          bump: minor
+      - put: image
+        params:
+          build: built
+          tag: version/version
