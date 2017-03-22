@@ -10,13 +10,14 @@ resources:
     source: &source
       uri: git@github.com:cedbossneo/example-gdg.git
       branch: master
+      private_key: {{deploy-key}}
   - name: version
     type: semver
     source:
       <<: *source
+      driver: git
       branch: version
       file: version
-      private_key: {{deploy-key}}
   - name: image
     type: docker-image
     source:
@@ -66,11 +67,14 @@ jobs:
       - put: helm
         params:
           version: version/version
-          dir: repository/scripts/helm/example
+          dir: repository/scripts/helm/example-gdg
 
-  - name: production
+  - name: deploy
     plan:
       - aggregate:
+        - get: version
+          passed:
+            - build
         - get: repository
           passed:
             - build
@@ -78,6 +82,7 @@ jobs:
           passed:
             - build
         - get: helm
+          trigger: true
           passed:
             - build
       - put: helm
