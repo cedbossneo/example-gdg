@@ -12,7 +12,7 @@ func main() {
 
 	router.GET("/user/:name", func(c *gin.Context) {
 		name := c.Param("name")
-		c.String(http.StatusOK, "Hello %s", name)
+		c.String(http.StatusOK, "Hello le mec qui dors au premier rang%s", name)
 	})
 
   router.Run(":80")
